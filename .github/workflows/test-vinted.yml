@@ -1,0 +1,23 @@
+name: Test accès Vinted
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TZ: Europe/Paris
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sonde Vinted
+        run: python3 sonde.py
+      - name: Notification d'essai
+        env:
+          NTFY_SUJET: ${{ secrets.NTFY_SUJET }}
+        run: python3 vinted_bot.py --notif-test
+      - name: Test complet du bot (sans notification)
+        env:
+          NTFY_SUJET: ${{ secrets.NTFY_SUJET }}
+        run: python3 vinted_bot.py --test

@@ -1,0 +1,25 @@
+name: Entretien mensuel
+
+# GitHub met en pause les tâches planifiées d'un dépôt public sans activité depuis 60 jours.
+# Ce petit envoi mensuel garde le bot actif.
+on:
+  schedule:
+    - cron: "17 3 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  garder-actif:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Noter la date
+        run: |
+          date -u +"%Y-%m-%d" > derniere_activite.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add derniere_activite.txt
+          git commit -m "Entretien mensuel : garde le bot actif" || exit 0
+          git push

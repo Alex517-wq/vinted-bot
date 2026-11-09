@@ -1,0 +1,41 @@
+name: Bot Vinted
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: bot-vinted
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  passage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      TZ: Europe/Paris
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Récupérer la mémoire du bot
+        uses: actions/cache/restore@v4
+        with:
+          path: etat.json
+          key: etat-${{ github.run_id }}
+          restore-keys: etat-
+
+      - name: Passage du bot
+        env:
+          NTFY_SUJET: ${{ secrets.NTFY_SUJET }}
+        run: python3 vinted_bot.py --une-fois
+
+      - name: Sauver la mémoire du bot
+        if: always() && hashFiles('etat.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: etat.json
+          key: etat-${{ github.run_id }}

@@ -1,0 +1,54 @@
+{
+  "ntfy_sujet": "",
+  "ntfy_serveur": "https://ntfy.sh",
+  "domaine": "www.vinted.fr",
+  "intervalle_minutes": 5,
+  "score_minimum": 0,
+  "resume_quotidien": true,
+  "exclure_enfants": true,
+  "annonces_par_recherche_en_test": 3,
+  "recherches": [
+    {
+      "nom": "Vestes, manteaux, doudounes",
+      "categories": [1206],
+      "articles": [
+        {"nom": "Parajumpers", "marques": {"Parajumpers": 35147}, "prix_max": 150, "prix_marche": 300, "tailles": []},
+        {"nom": "C.P. Company veste", "marques": {"C.P. Company": 73952}, "prix_max": 120, "prix_marche": 250, "tailles": []},
+        {"nom": "Stone Island veste", "marques": {"Stone Island": 73306}, "prix_max": 150, "prix_marche": 300, "tailles": []},
+        {"nom": "Pyrenex", "marques": {"Pyrenex": 19741}, "prix_max": 80, "prix_marche": 160, "tailles": []},
+        {"nom": "Moncler doudoune", "marques": {"Moncler": 6539}, "prix_max": 250, "prix_marche": 450, "tailles": []}
+      ]
+    },
+    {
+      "nom": "Pulls et cardigans",
+      "categories": [79],
+      "articles": [
+        {"nom": "C.P. Company pull", "marques": {"C.P. Company": 73952}, "prix_max": 60, "prix_marche": 120, "tailles": []},
+        {"nom": "Stone Island pull", "marques": {"Stone Island": 73306}, "prix_max": 70, "prix_marche": 140, "tailles": []}
+      ]
+    },
+    {
+      "nom": "Cardigans Moncler",
+      "categories": [266],
+      "articles": [
+        {"nom": "Moncler cardigan", "marques": {"Moncler": 6539}, "prix_max": 180, "prix_marche": 350, "tailles": []}
+      ]
+    },
+    {
+      "nom": "Chaussures",
+      "categories": [1231, 16],
+      "articles": [
+        {"nom": "Nike x Sacai", "marques": {"Nike x Sacai": 2232450, "sacai": 369700, "Nike x sacai x Jean Paul Gaultier": 7277909, "Nike x sacai x Kaws": 6478327, "Nike x Sacai x Fragment Design": 5706162}, "prix_max": 120, "prix_marche": 220, "pointure_min_exclue": 40},
+        {"nom": "Golden Goose", "marques": {"Golden Goose": 38923}, "prix_max": 130, "prix_marche": 220, "pointure_min_exclue": 36}
+      ]
+    },
+    {
+      "nom": "Sacai rangées en Nike",
+      "categories": [1231, 16],
+      "texte": "sacai",
+      "articles": [
+        {"nom": "Nike x Sacai", "marques": {"Nike": 53}, "prix_max": 120, "prix_marche": 220, "pointure_min_exclue": 40, "titre_contient": "sacai"}
+      ]
+    }
+  ]
+}

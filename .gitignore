@@ -1,0 +1,6 @@
+etat.json
+*.log
+*.log.1
+__pycache__/
+*.tmp
+test_*.txt
