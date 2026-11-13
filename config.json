@@ -7,6 +7,8 @@
   "resume_quotidien": true,
   "exclure_enfants": true,
   "annonces_par_recherche_en_test": 3,
+  "annonces_max_par_passage": 12,
+  "duree_max_passage_s": 300,
   "recherches": [
     {
       "nom": "Vestes, manteaux, doudounes",

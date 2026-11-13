@@ -553,57 +553,65 @@ def traiter(cfg, etat, v, a, art, notifs, stats):
         stats["notifs"] += 1
 
 
-def cycle(cfg, etat, v, test=False, notifs=True):
-    maintenant = time.time()
+def cycle(cfg, etat, v, test=False, notifs=True, budget_s=None):
+    """Lit toutes les recherches, puis analyse les nouvelles annonces, les plus récentes d'abord.
+
+    Une annonce n'est marquée « vue » qu'une fois analysée (ou écartée par les filtres) : si le temps
+    manque, le reste est repris au passage suivant, sans rien perdre ni rien envoyer deux fois.
+    """
+    debut = time.time()
     vus = etat.setdefault("vus", {})
     pretes = etat.setdefault("recherches_pretes", [])
     stats = stats_du_jour(etat)
     nb_test = int(cfg.get("annonces_par_recherche_en_test", 3))
+    plafond = int(cfg.get("annonces_max_par_passage", 12))
     erreurs = 0
+    a_faire, deja = [], set()
     for g in cfg["recherches"]:
         try:
             annonces = lire_catalogue(v.get(url_recherche(g)), v.base)
             nouvelles = [a for a in annonces if str(a["id"]) not in vus]
-            suite = []
-            if g["nom"] in pretes and annonces and len(nouvelles) == len(annonces):
-                # plus de 96 nouveautés depuis le dernier passage : on lit aussi la page 2
-                suite = lire_catalogue(v.get(url_recherche(g, 2)), v.base)
-                nouvelles += [a for a in suite if str(a["id"]) not in vus]
             lots = {}  # vendeurs qui postent plusieurs articles d'une marque à prix cassé
-            for a in annonces + suite:
+            for a in annonces:
                 art = regle_pour(g, a)
                 if art and art.get("prix_marche") and a["prix"] < 0.35 * art["prix_marche"]:
                     cle = (a["vendeur_id"], art["nom"])
                     lots[cle] = lots.get(cle, 0) + 1
             uids = [a["vendeur_id"] for a in annonces]
             if uids and max(uids) > etat.get("max_uid", 0):
-                etat["max_uid"], etat["max_uid_ts"] = max(uids), maintenant
-            for a in nouvelles:
-                vus[str(a["id"])] = maintenant
+                etat["max_uid"], etat["max_uid_ts"] = max(uids), time.time()
             if test:
                 a_traiter = annonces
                 log("%s : %d annonces lues, analyse des %d premières qui collent" % (g["nom"], len(annonces), nb_test))
             elif g["nom"] not in pretes:
+                for a in annonces:
+                    vus[str(a["id"])] = time.time()
                 pretes.append(g["nom"])
                 log("%s : %d annonces actuelles mémorisées, seules les nouvelles seront signalées"
                     % (g["nom"], len(annonces)))
                 continue
             else:
                 a_traiter = nouvelles
-            traitees = 0
+            retenues = 0
             for a in a_traiter:
                 art = regle_pour(g, a)
-                if not art or a["prix"] > art["prix_max"] or not taille_ok(art, a["taille"]):
+                garder = bool(art) and a["prix"] <= art["prix_max"] and taille_ok(art, a["taille"])
+                if garder and art.get("titre_contient") and norm(art["titre_contient"]) not in norm(a["titre"]):
+                    garder = False
+                if garder and cfg.get("exclure_enfants", True) and enfant(a):
+                    garder = False
+                if not garder:
+                    if not test:
+                        vus[str(a["id"])] = time.time()  # hors critères : inutile de la relire
                     continue
-                if art.get("titre_contient") and norm(art["titre_contient"]) not in norm(a["titre"]):
-                    continue
-                if cfg.get("exclure_enfants", True) and enfant(a):
-                    continue
-                if test and traitees >= nb_test:
+                if test and retenues >= nb_test:
                     break
-                traitees += 1
+                if a["id"] in deja:
+                    continue
+                deja.add(a["id"])
+                retenues += 1
                 a["lot_prix_casse"] = lots.get((a["vendeur_id"], art["nom"]), 0)
-                traiter(cfg, etat, v, a, art, notifs, stats)
+                a_faire.append((a, art))
         except urllib.error.HTTPError as e:
             if e.code in (403, 429):
                 raise
@@ -614,6 +622,25 @@ def cycle(cfg, etat, v, test=False, notifs=True):
             log("%s : erreur %r" % (g["nom"], e))
     if erreurs and erreurs == len(cfg["recherches"]):
         raise RuntimeError("aucune recherche n'a pu être lue")
+
+    a_faire.sort(key=lambda x: x[0]["id"], reverse=True)  # les plus récentes d'abord
+    if not test and len(a_faire) > plafond:
+        # gros retard (bot arrêté un moment) : on garde les plus récentes, pas de rafale de vieilles annonces
+        for a, _ in a_faire[plafond:]:
+            vus[str(a["id"])] = time.time()
+        log("%d annonces en retard ignorées, seules les %d plus récentes sont analysées"
+            % (len(a_faire) - plafond, plafond))
+        a_faire = a_faire[:plafond]
+    if not test:
+        ecrire_json(F_ETAT, etat)
+    for a, art in a_faire:
+        if budget_s and time.time() - debut > budget_s:
+            log("Temps du passage écoulé : %d annonces reprises au prochain passage" % (len(a_faire) - a_faire.index((a, art))))
+            break
+        traiter(cfg, etat, v, a, art, notifs, stats)
+        if not test:
+            vus[str(a["id"])] = time.time()
+            ecrire_json(F_ETAT, etat)  # sauvegarde au fil de l'eau : une coupure ne fait rien perdre
 
 
 def resume_quotidien(cfg, etat):
@@ -643,7 +670,7 @@ def passage_unique(cfg, etat, v):
     """Un seul passage puis arrêt : c'est le mode utilisé par GitHub toutes les 5 minutes."""
     try:
         resume_quotidien(cfg, etat)
-        cycle(cfg, etat, v)
+        cycle(cfg, etat, v, budget_s=float(cfg.get("duree_max_passage_s", 300)))
         if etat.get("alerte_envoyee"):
             ntfy(cfg, "✅ Bot Vinted reparti", "Il lit de nouveau Vinted normalement.", priorite=2)
         etat["echecs"], etat["alerte_envoyee"] = 0, False

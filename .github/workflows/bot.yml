@@ -1,9 +1,11 @@
 name: Bot Vinted
 
+# Le passage est lancé toutes les 5 minutes par cron-job.org (appel « workflow_dispatch »).
+# La planification GitHub ci-dessous n'est qu'un filet de sécurité : GitHub la retarde souvent de plusieurs heures.
 on:
-  schedule:
-    - cron: "*/5 * * * *"
   workflow_dispatch:
+  schedule:
+    - cron: "23 * * * *"
 
 concurrency:
   group: bot-vinted
@@ -15,7 +17,7 @@ permissions:
 jobs:
   passage:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 12
     env:
       TZ: Europe/Paris
     steps:
@@ -29,6 +31,8 @@ jobs:
           restore-keys: etat-
 
       - name: Passage du bot
+        timeout-minutes: 8
+        continue-on-error: true
         env:
           NTFY_SUJET: ${{ secrets.NTFY_SUJET }}
         run: python3 vinted_bot.py --une-fois
