@@ -98,8 +98,10 @@ def drapeau(code):
 # ------------------------------------------------------------------ accès Vinted
 
 class Vinted:
-    def __init__(self, domaine):
+    def __init__(self, domaine, pause=(2.0, 4.0)):
         self.base = "https://" + domaine
+        self.pause = pause  # secondes d'attente après chaque page (mini, maxi)
+        self.nb_requetes = 0
         self.nouvelle_session()
 
     def nouvelle_session(self):
@@ -113,13 +115,14 @@ class Vinted:
         req = urllib.request.Request(self.base + chemin, headers={
             "User-Agent": UA, "Accept": accept, "Accept-Encoding": "gzip",
             "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8"})
+        self.nb_requetes += 1
         try:
             with self.opener.open(req, timeout=40) as r:
                 brut = r.read()
                 if r.headers.get("Content-Encoding") == "gzip":
                     brut = gzip.decompress(brut)
         finally:
-            time.sleep(random.uniform(2.0, 4.0))  # rythme d'un humain, pour rester discret
+            time.sleep(random.uniform(*self.pause))  # rythme d'un humain, pour rester discret
         return brut.decode("utf-8", "replace")
 
     def get(self, chemin, json_attendu=False):
@@ -227,9 +230,31 @@ def lire_annonce(html, item_id):
 def lire_vendeur(v, uid):
     try:
         return (json.loads(v.get("/api/v2/users/%d" % uid, json_attendu=True)) or {}).get("user") or {}
+    except urllib.error.HTTPError as e:
+        if e.code in (403, 429):
+            raise  # Vinted freine : on arrête le passage et on ralentit
+        log("    profil vendeur %d illisible (HTTP %d)" % (uid, e.code))
+        return {}
     except (urllib.error.URLError, ValueError, OSError) as e:
         log("    profil vendeur %d illisible (%s)" % (uid, e))
         return {}
+
+
+CHAMPS_VENDEUR = ("feedback_count", "feedback_reputation", "given_item_count", "item_count", "last_loged_on_ts",
+                  "country_code", "city", "is_account_banned", "is_deleted")
+VENDEUR_VALIDITE_S = 3600
+
+
+def vendeur(v, uid, etat):
+    """Profil du vendeur, gardé une heure : un vendeur qui poste plusieurs pièces n'est lu qu'une fois."""
+    cache = etat.setdefault("vendeurs", {})
+    c = cache.get(str(uid))
+    if c and time.time() - c[0] < VENDEUR_VALIDITE_S:
+        return c[1]
+    u = lire_vendeur(v, uid)
+    if u:
+        cache[str(uid)] = [time.time(), {k: u.get(k) for k in CHAMPS_VENDEUR}]
+    return u
 
 
 # ------------------------------------------------------------------ détection
@@ -568,7 +593,7 @@ def traiter(cfg, etat, v, a, art, notifs, stats):
         log("    annonce %d illisible (%s)" % (a["id"], e))
     if not d.get("dispo", True):
         return
-    u = lire_vendeur(v, a["vendeur_id"]) if a["vendeur_id"] else {}
+    u = vendeur(v, a["vendeur_id"], etat) if a["vendeur_id"] else {}
     stats["analysees"] += 1
     arnaque, score, alertes, atouts = analyser(a, d, u, art, etat)
     if arnaque:
@@ -688,6 +713,15 @@ def nettoyer(etat):
     limite = time.time() - 7 * 86400
     etat["vus"] = {k: t for k, t in etat.get("vus", {}).items() if t > limite}
     etat["notifiees"] = {k: t for k, t in etat.get("notifiees", {}).items() if t > limite}
+    etat["vendeurs"] = {k: c for k, c in etat.get("vendeurs", {}).items()
+                        if time.time() - c[0] < VENDEUR_VALIDITE_S}
+
+
+def pause_requetes(cfg, etat):
+    """Pause entre deux pages, multipliée tant que Vinted a freiné récemment."""
+    mini, maxi = cfg.get("pause_entre_requetes_s") or [1.0, 2.0]
+    r = float(etat.get("ralenti", 1.0))
+    return (float(mini) * r, float(maxi) * r)
 
 
 def charger_config(defaut=None):
@@ -700,20 +734,28 @@ def charger_config(defaut=None):
 
 def passage_unique(cfg, etat, v):
     """Un seul passage puis arrêt : c'est le mode utilisé par GitHub toutes les 2 minutes."""
+    debut = time.time()
     try:
         resume_quotidien(cfg, etat)
         cycle(cfg, etat, v, budget_s=float(cfg.get("duree_max_passage_s", 300)))
         if etat.get("alerte_envoyee"):
             ntfy(cfg, "✅ Bot Vinted reparti", "Il lit de nouveau Vinted normalement.", priorite=2)
         etat["echecs"], etat["alerte_envoyee"] = 0, False
+        if etat.get("ralenti", 1.0) > 1.0:  # tout va bien : on revient peu à peu au rythme normal
+            etat["ralenti"] = max(1.0, round(etat["ralenti"] * 0.8, 2))
     except Exception as e:
         etat["echecs"] = etat.get("echecs", 0) + 1
         log("Passage raté (%d d'affilée) : %r" % (etat["echecs"], e))
+        if isinstance(e, urllib.error.HTTPError) and e.code in (403, 429):
+            etat["ralenti"] = min(4.0, float(etat.get("ralenti", 1.0)) * 2)
+            log("Vinted freine : pauses multipliées par %.1f aux prochains passages" % etat["ralenti"])
         if etat["echecs"] >= 6 and not etat.get("alerte_envoyee"):
             ntfy(cfg, "⚠️ Bot Vinted bloqué",
                  "Ça fait %d passages qu'il n'arrive pas à lire Vinted. Il réessaie tout seul." % etat["echecs"],
                  priorite=3)
             etat["alerte_envoyee"] = True
+    log("Passage : %d pages lues en %.0f s (pause %.1f-%.1f s)"
+        % (v.nb_requetes, time.time() - debut, v.pause[0], v.pause[1]))
     nettoyer(etat)
     ecrire_json(F_ETAT, etat)
 
@@ -734,7 +776,7 @@ def main():
         print("Notification envoyée." if ok else "Échec de l'envoi de la notification.")
         return
     etat = lire_json(F_ETAT, {})
-    v = Vinted(cfg.get("domaine", "www.vinted.fr"))
+    v = Vinted(cfg.get("domaine", "www.vinted.fr"), pause_requetes(cfg, etat))
     if "--test" in args:
         cycle(cfg, etat, v, test=True, notifs="--notif" in args)
         ecrire_json(F_ETAT, etat)
