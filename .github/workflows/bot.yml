@@ -1,6 +1,6 @@
 name: Bot Vinted
 
-# Le passage est lancé toutes les 5 minutes par cron-job.org (appel « workflow_dispatch »).
+# Le passage est lancé toutes les 2 minutes par cron-job.org (appel « workflow_dispatch »).
 # La planification GitHub ci-dessous n'est qu'un filet de sécurité : GitHub la retarde souvent de plusieurs heures.
 on:
   workflow_dispatch:
