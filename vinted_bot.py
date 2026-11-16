@@ -532,10 +532,27 @@ def cle_doublon(a, art):
                             re.sub(r"\W+", " ", norm(a["titre"])).strip())
 
 
+def ecarter(a, art, arnaque, stats):
+    stats["ecartees"] += 1
+    log("  ÉCARTÉE  %s · %.0f € · %s · %s" % (art["nom"], a["prix"], arnaque, a["url"]))
+    try:
+        with open(F_ECARTEES, "a", encoding="utf-8") as f:
+            f.write("%s  %s · %.0f € · %s\n    %s\n    %s\n" % (
+                time.strftime("%Y-%m-%d %H:%M"), art["nom"], a["prix"], arnaque, a["titre"], a["url"]))
+    except OSError:
+        pass
+
+
 def traiter(cfg, etat, v, a, art, notifs, stats):
     cle = cle_doublon(a, art)
     if a["vendeur_id"] and cle in etat.setdefault("notifiees", {}):
         log("    doublon ignoré (même vendeur, même titre déjà signalé) : %s" % a["url"])
+        return
+    if a.get("lot_prix_casse", 0) >= 4:
+        # revendeur de copies : écarté tout de suite, sans perdre de temps à ouvrir l'annonce
+        stats["analysees"] += 1
+        ecarter(a, art, "le vendeur publie %d articles de la marque à prix cassé en même temps "
+                        "(revendeur de copies)" % a["lot_prix_casse"], stats)
         return
     d = {"lu": False, "description": "", "nb_photos": None, "dispo": True}
     try:
@@ -555,14 +572,7 @@ def traiter(cfg, etat, v, a, art, notifs, stats):
     stats["analysees"] += 1
     arnaque, score, alertes, atouts = analyser(a, d, u, art, etat)
     if arnaque:
-        stats["ecartees"] += 1
-        log("  ÉCARTÉE  %s · %.0f € · %s · %s" % (art["nom"], a["prix"], arnaque, a["url"]))
-        try:
-            with open(F_ECARTEES, "a", encoding="utf-8") as f:
-                f.write("%s  %s · %.0f € · %s\n    %s\n    %s\n" % (
-                    time.strftime("%Y-%m-%d %H:%M"), art["nom"], a["prix"], arnaque, a["titre"], a["url"]))
-        except OSError:
-            pass
+        ecarter(a, art, arnaque, stats)
         return
     log("  %3d %%  %s · %.0f € · %s · %s" % (score, art["nom"], a["prix"],
                                             " / ".join(alertes) or "rien à signaler", a["url"]))
