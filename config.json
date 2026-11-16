@@ -19,6 +19,14 @@
       ]
     },
     {
+      "nom": "Parajumpers Warm Up",
+      "categories": [5],
+      "texte": "warm up",
+      "articles": [
+        {"nom": "Parajumpers Warm Up", "marques": {"Parajumpers": 35147}, "prix_max": 170, "prix_marche": 200, "tailles": []}
+      ]
+    },
+    {
       "nom": "Vestes, manteaux, doudounes",
       "categories": [1206],
       "articles": [
