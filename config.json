@@ -7,8 +7,9 @@
   "resume_quotidien": true,
   "exclure_enfants": true,
   "annonces_par_recherche_en_test": 3,
-  "annonces_max_par_passage": 40,
+  "annonces_max_par_passage": 60,
   "duree_max_passage_s": 85,
+  "pause_entre_requetes_s": [1, 2],
   "recherches": [
     {
       "nom": "C.P. Company Shell-R",
