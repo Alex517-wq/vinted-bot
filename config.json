@@ -40,7 +40,7 @@
       "nom": "Chaussures",
       "categories": [1231, 16],
       "articles": [
-        {"nom": "Nike x Sacai", "marques": {"Nike x Sacai": 2232450, "sacai": 369700, "Nike x sacai x Jean Paul Gaultier": 7277909, "Nike x sacai x Kaws": 6478327, "Nike x Sacai x Fragment Design": 5706162}, "prix_max": 120, "prix_marche": 220, "pointure_min_exclue": 40},
+        {"nom": "Nike x Sacai", "marques": {"Nike x Sacai": 2232450, "sacai": 369700, "Nike x sacai x Jean Paul Gaultier": 7277909, "Nike x sacai x Kaws": 6478327, "Nike x Sacai x Fragment Design": 5706162}, "prix_max": 120, "prix_marche": 220, "pointure_min_exclue": 38.5},
         {"nom": "Golden Goose", "marques": {"Golden Goose": 38923}, "prix_max": 130, "prix_marche": 220, "pointure_min_exclue": 36}
       ]
     },
@@ -49,7 +49,7 @@
       "categories": [1231, 16],
       "texte": "sacai",
       "articles": [
-        {"nom": "Nike x Sacai", "marques": {"Nike": 53}, "prix_max": 120, "prix_marche": 220, "pointure_min_exclue": 40, "titre_contient": "sacai"}
+        {"nom": "Nike x Sacai", "marques": {"Nike": 53}, "prix_max": 120, "prix_marche": 220, "pointure_min_exclue": 38.5, "titre_contient": "sacai"}
       ]
     }
   ]
