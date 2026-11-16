@@ -11,6 +11,14 @@
   "duree_max_passage_s": 300,
   "recherches": [
     {
+      "nom": "C.P. Company Shell-R",
+      "categories": [],
+      "texte": "shell",
+      "articles": [
+        {"nom": "C.P. Company Shell-R", "marques": {"C.P. Company": 73952}, "prix_max": 180, "prix_marche": 320, "tailles": []}
+      ]
+    },
+    {
       "nom": "Vestes, manteaux, doudounes",
       "categories": [1206],
       "articles": [
