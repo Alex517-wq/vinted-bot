@@ -2,13 +2,13 @@
   "ntfy_sujet": "",
   "ntfy_serveur": "https://ntfy.sh",
   "domaine": "www.vinted.fr",
-  "intervalle_minutes": 5,
+  "intervalle_minutes": 2,
   "score_minimum": 0,
   "resume_quotidien": true,
   "exclure_enfants": true,
   "annonces_par_recherche_en_test": 3,
   "annonces_max_par_passage": 40,
-  "duree_max_passage_s": 300,
+  "duree_max_passage_s": 85,
   "recherches": [
     {
       "nom": "C.P. Company Shell-R",
