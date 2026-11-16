@@ -1,6 +1,6 @@
 # Bot Vinted
 
-Toutes les 5 minutes, GitHub lance le bot sur ses serveurs. Aucune machine n'a besoin de rester allumée chez toi.
+Toutes les 2 minutes, GitHub lance le bot sur ses serveurs. Aucune machine n'a besoin de rester allumée chez toi.
 
 À chaque passage, le bot :
 
