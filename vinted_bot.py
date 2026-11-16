@@ -290,6 +290,8 @@ SOUPCONS = [
     (r"\b(?:style|type|facon|look)\s+(?:moncler|stone|c\.?p\.?\s|parajumpers?|pyrenex|golden goose|ggdb|sacai)",
      25, "« style/type marque » (souvent une copie)", True),
     (r"\b(?:insta(?:gram)?|snap(?:chat)?|tiktok)\b", 15, "renvoie vers Instagram ou Snap", True),
+    (r"\b(?:monclear|monkler)\b", 20,
+     "nom de marque mal écrit (fréquent sur les copies)", False),
     (r"\b(?:pas|non|not|nicht|no)\s+(?:\w+\s+)?original", 10, "« pas original » écrit dans l'annonce", False),
     (r"\b(?:sans|no|without|ohne|senza|sin)\s+(?:le\s+|il\s+|el\s+|the\s+)?(?:badge|patch|certilogo)", 12,
      "badge ou Certilogo absent", False),
@@ -313,7 +315,8 @@ def marque_contradictoire(a):
 
 RE_ENFANT_TAILLE = re.compile(r"\b(?:ans?|mois|years?|jahre|anni|anos|cm)\b")
 RE_ENFANT_TITRE = re.compile(r"\b\d{1,2}\s?(?:ans|years|jahre|anni|anos)\b|\benfants?\b|\bkids?\b|\bjunior\b|"
-                             r"\bkinder\b|\bbambin[oa]\b|\bnin[oa]s?\b")
+                             r"\bkinder\b|\bbambin[oaie]\b|\bnin[oa]s?\b|\bragazz[oaie]\b|\bbimb[oaie]\b|"
+                             r"\bfillettes?\b|\bgarcons?\b|\bjongens\b|\bmeisjes?\b")
 
 
 def enfant(a):
@@ -337,6 +340,9 @@ def analyser(a, d, u, regle, etat):
         return "donne une adresse e-mail (arnaque classique hors Vinted)", 0, [], []
     if u.get("is_account_banned") or u.get("is_deleted"):
         return "compte vendeur banni ou supprimé", 0, [], []
+    if a.get("lot_prix_casse", 0) >= 4:
+        return ("le vendeur publie %d articles de la marque à prix cassé en même temps (revendeur de copies)"
+                % a["lot_prix_casse"]), 0, [], []
 
     avis = int(u.get("feedback_count") or 0)
     ratio = a["prix"] / regle["prix_marche"] if regle.get("prix_marche") else 1.0
@@ -520,13 +526,26 @@ def stats_du_jour(etat):
     return s
 
 
+def cle_doublon(a, art):
+    """Même vendeur, même titre, même taille : c'est une republication de la même pièce."""
+    return "%d|%s|%s|%s" % (a["vendeur_id"], art["nom"], norm(a["taille"]),
+                            re.sub(r"\W+", " ", norm(a["titre"])).strip())
+
+
 def traiter(cfg, etat, v, a, art, notifs, stats):
+    cle = cle_doublon(a, art)
+    if a["vendeur_id"] and cle in etat.setdefault("notifiees", {}):
+        log("    doublon ignoré (même vendeur, même titre déjà signalé) : %s" % a["url"])
+        return
     d = {"lu": False, "description": "", "nb_photos": None, "dispo": True}
     try:
         d = lire_annonce(v.get(a["chemin"]), a["id"])
     except urllib.error.HTTPError as e:
         if e.code in (403, 429):
             raise
+        if e.code in (404, 410):
+            log("    annonce %d déjà retirée de Vinted" % a["id"])
+            return
         log("    annonce %d illisible (HTTP %d)" % (a["id"], e.code))
     except Exception as e:
         log("    annonce %d illisible (%s)" % (a["id"], e))
@@ -551,6 +570,8 @@ def traiter(cfg, etat, v, a, art, notifs, stats):
         return
     if notifs and notifier_annonce(cfg, etat, a, u, art, score, alertes, atouts):
         stats["notifs"] += 1
+        if a["vendeur_id"]:
+            etat.setdefault("notifiees", {})[cle] = time.time()
 
 
 def cycle(cfg, etat, v, test=False, notifs=True, budget_s=None):
@@ -601,8 +622,8 @@ def cycle(cfg, etat, v, test=False, notifs=True, budget_s=None):
                 if garder and cfg.get("exclure_enfants", True) and enfant(a):
                     garder = False
                 if not garder:
-                    if not test:
-                        vus[str(a["id"])] = time.time()  # hors critères : inutile de la relire
+                    # pas marquée « vue » : une autre recherche peut la retenir, et une baisse de prix
+                    # sous le prix max sera repérée au passage suivant (relire la liste ne coûte rien)
                     continue
                 if test and retenues >= nb_test:
                     break
@@ -656,6 +677,7 @@ def resume_quotidien(cfg, etat):
 def nettoyer(etat):
     limite = time.time() - 7 * 86400
     etat["vus"] = {k: t for k, t in etat.get("vus", {}).items() if t > limite}
+    etat["notifiees"] = {k: t for k, t in etat.get("notifiees", {}).items() if t > limite}
 
 
 def charger_config(defaut=None):
@@ -667,7 +689,7 @@ def charger_config(defaut=None):
 
 
 def passage_unique(cfg, etat, v):
-    """Un seul passage puis arrêt : c'est le mode utilisé par GitHub toutes les 5 minutes."""
+    """Un seul passage puis arrêt : c'est le mode utilisé par GitHub toutes les 2 minutes."""
     try:
         resume_quotidien(cfg, etat)
         cycle(cfg, etat, v, budget_s=float(cfg.get("duree_max_passage_s", 300)))
