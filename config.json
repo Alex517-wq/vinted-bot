@@ -28,6 +28,14 @@
       ]
     },
     {
+      "nom": "Parajumpers Sheen",
+      "categories": [5],
+      "texte": "sheen",
+      "articles": [
+        {"nom": "Parajumpers Sheen", "marques": {"Parajumpers": 35147}, "prix_max": 230, "prix_marche": 300, "tailles": []}
+      ]
+    },
+    {
       "nom": "Vestes, manteaux, doudounes",
       "categories": [1206],
       "articles": [
