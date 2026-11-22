@@ -520,14 +520,31 @@ def url_recherche(g, page=1):
     return "/catalog?" + "&".join("%s=%s" % (k, urllib.parse.quote(str(v))) for k, v in params)
 
 
+def compact(texte):
+    """Sans espaces ni tirets : « B 30 », « b-30 » et « B30 » donnent tous « b30 »."""
+    return re.sub(r"[\s\-_.]+", "", norm(texte))
+
+
+def titre_ok(art, titre):
+    """Vrai si le titre contient le modèle voulu (« titre_contient » : un mot ou une liste de mots)."""
+    motifs = art.get("titre_contient")
+    if not motifs:
+        return True
+    if isinstance(motifs, str):
+        motifs = [motifs]
+    t, tc = norm(titre), compact(titre)
+    return any(norm(m) in t or compact(m) in tc for m in motifs)
+
+
 def regle_pour(g, a):
+    """Règle qui s'applique à l'annonce : bonne marque et, si la règle vise un modèle, bon titre."""
     marque = norm(a["marque"])
     for art in g["articles"]:
-        if marque in [norm(m) for m in art["marques"]]:
+        if marque in [norm(m) for m in art["marques"]] and titre_ok(art, a["titre"]):
             return art
     titre = norm(a["titre"])
     for art in g["articles"]:
-        if any(norm(m) in titre for m in art["marques"]):
+        if any(norm(m) in titre for m in art["marques"]) and titre_ok(art, a["titre"]):
             return art
     return None
 
@@ -652,7 +669,7 @@ def cycle(cfg, etat, v, test=False, notifs=True, budget_s=None):
             for a in a_traiter:
                 art = regle_pour(g, a)
                 garder = bool(art) and a["prix"] <= art["prix_max"] and taille_ok(art, a["taille"])
-                if garder and art.get("titre_contient") and norm(art["titre_contient"]) not in norm(a["titre"]):
+                if garder and not titre_ok(art, a["titre"]):
                     garder = False
                 if garder and cfg.get("exclure_enfants", True) and enfant(a):
                     garder = False
