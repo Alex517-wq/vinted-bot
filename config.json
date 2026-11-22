@@ -76,6 +76,22 @@
       "articles": [
         {"nom": "Nike x Sacai", "marques": {"Nike": 53}, "prix_max": 120, "prix_marche": 180, "pointure_min_exclue": 38.5, "titre_contient": "sacai"}
       ]
+    },
+    {
+      "nom": "Dior B30 et B22",
+      "categories": [1231, 16],
+      "articles": [
+        {"nom": "Dior B30", "marques": {"Dior": 671}, "prix_max": 350, "prix_marche": 450, "titre_contient": "b30"},
+        {"nom": "Dior B22", "marques": {"Dior": 671}, "prix_max": 320, "prix_marche": 400, "titre_contient": "b22"}
+      ]
+    },
+    {
+      "nom": "Hermès Bouncing",
+      "categories": [1231, 16],
+      "texte": "bouncing",
+      "articles": [
+        {"nom": "Hermès Bouncing", "marques": {"Hermès": 4785}, "prix_max": 450, "prix_marche": 580}
+      ]
     }
   ]
 }
