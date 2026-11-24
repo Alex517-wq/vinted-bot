@@ -590,6 +590,11 @@ def traiter(cfg, etat, v, a, art, notifs, stats):
     if a["vendeur_id"] and cle in etat.setdefault("notifiees", {}):
         log("    doublon ignoré (même vendeur, même titre déjà signalé) : %s" % a["url"])
         return
+    if a["prix"] < art.get("prix_min", 0):
+        # sous ce prix, la pièce ne peut pas être authentique : écartée sans ouvrir l'annonce
+        stats["analysees"] += 1
+        ecarter(a, art, "prix impossible pour une vraie (moins de %d €) : copie quasi certaine" % art["prix_min"], stats)
+        return
     if a.get("lot_prix_casse", 0) >= 4:
         # revendeur de copies : écarté tout de suite, sans perdre de temps à ouvrir l'annonce
         stats["analysees"] += 1
