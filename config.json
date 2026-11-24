@@ -36,14 +36,21 @@
       ]
     },
     {
+      "nom": "Moncler Maya",
+      "categories": [5],
+      "texte": "maya",
+      "articles": [
+        {"nom": "Moncler Maya", "marques": {"Moncler": 6539}, "prix_max": 450, "prix_min": 200, "prix_marche": 600, "titre_contient": "maya", "tailles": []}
+      ]
+    },
+    {
       "nom": "Vestes, manteaux, doudounes",
       "categories": [1206],
       "articles": [
         {"nom": "Parajumpers", "marques": {"Parajumpers": 35147}, "prix_max": 150, "prix_marche": 220, "tailles": []},
         {"nom": "C.P. Company veste", "marques": {"C.P. Company": 73952}, "prix_max": 120, "prix_marche": 180, "tailles": []},
         {"nom": "Stone Island veste", "marques": {"Stone Island": 73306}, "prix_max": 150, "prix_marche": 240, "tailles": []},
-        {"nom": "Pyrenex", "marques": {"Pyrenex": 19741}, "prix_max": 120, "prix_marche": 200, "tailles": []},
-        {"nom": "Moncler doudoune", "marques": {"Moncler": 6539}, "prix_max": 250, "prix_marche": 450, "tailles": []}
+        {"nom": "Pyrenex", "marques": {"Pyrenex": 19741}, "prix_max": 120, "prix_marche": 200, "tailles": []}
       ]
     },
     {
